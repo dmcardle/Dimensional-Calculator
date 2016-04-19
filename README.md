@@ -8,4 +8,7 @@ The main idea here is to make a type checker for dimensional analysis.  It shoul
     => 8 apples
 
     5 apples * 3 apples
+    => 15 apples^2
+
+    5 apples + 3 bananas
     => [Dimensional Error]
