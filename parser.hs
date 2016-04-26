@@ -1,70 +1,82 @@
+{-
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as T
 import qualified Text.ParserCombinators.Parsec.Language as L
+-}
 
-data Operator = Plus | Minus | Times | Divide
+import Control.Applicative((<*))
+import Text.Parsec
+import Text.Parsec.String
+import Text.Parsec.Expr
+import Text.Parsec.Token
+import Text.Parsec.Language
+
+data Oper = Plus | Minus | Times | Divide
               deriving (Eq, Ord, Show)
 
 type Unit = String
 data Expression = UnitsNumber Double Unit
-                | Operation Operator Expression Expression
+                | Operation Oper Expression Expression
                 deriving (Eq, Ord, Show)
 
-type ArithFunc = Float -> Float -> Float
+def = emptyDef{ commentStart = "{-"
+              , commentEnd = "-}"
+              , identStart = letter
+              , identLetter = alphaNum
+              , opStart = oneOf "+-*/"
+              , opLetter = oneOf "+-*/"
+              , reservedOpNames = ["+", "-", "*", "/"]
+              , reservedNames = []
+              }
+      
+lexer = makeTokenParser def
 
-data Token = TokOp Operator
-           | TokNum Float
-           | TokUnits String
-           | TokOpenParen
-           | TokCloseParen
-           deriving (Eq, Ord, Show)
+TokenParser{ parens = m_parens
+           , identifier = m_identifier
+           , reservedOp = m_reservedOp
+           , reserved = m_reserved
+           , semiSep1 = m_semiSep1
+           , whiteSpace = m_whiteSpace } = lexer
 
-expr :: Parser Expression
-expr = try $ unitsNum <|> operation
+exprParser :: Parser Expression
+exprParser = buildExpressionParser table term <?> "expression"
 
-unitsNum :: Parser Expression
-unitsNum = try $ do
-  n <- T.float lexer
-  u <- T.identifier lexer
---  notFollowedBy $ lookAhead operator
-  return (UnitsNumber n u)
+table = [ [Infix (m_reservedOp "+" >> return (Operation Plus)) AssocLeft]
+        , [Infix (m_reservedOp "-" >> return (Operation Minus)) AssocLeft]
+        , [Infix (m_reservedOp "*" >> return (Operation Times)) AssocLeft]
+        , [Infix (m_reservedOp "/" >> return (Operation Divide)) AssocLeft]
+        ]
+term = m_parens exprParser
+       <|> unitsNumber
+       <|> operation
+
+unitsNumber = do
+  f <- float lexer
+  u <- m_identifier
+  return (UnitsNumber f u)
 
 operation :: Parser Expression
-operation = try $ do
-  e1 <- expr
-  op <- operator
-  e2 <- expr
+operation = do
+  e1 <- exprParser
+  op <- parseOperator
+  e2 <- exprParser
+  
   return (Operation op e1 e2)
   
-operator :: Parser Operator
-operator = do
-  op <- T.operator lexer
-  let ret =
-        case op of
-          "+" -> Plus
-          "-" -> Minus
-          "*" -> Times
-          "/" -> Divide
-    in
-   return ret
-  
--- Borrowing Haskell lexer for the calculator's expression language
-lexer = L.haskell
+parseOperator = (m_reservedOp "+" >> return Plus)
+                <|> (m_reservedOp "-" >> return Minus)
+                <|> (m_reservedOp "*" >> return Times)
+                <|> (m_reservedOp "/" >> return Divide)
+                
+tokenOf :: String -> Oper
+tokenOf op = case op of
+  "+" -> Plus
+  "-" -> Minus
+  "*" -> Times
+  "/" -> Divide
 
 parseExpr :: String -> Expression
 parseExpr str =
-  case parse expr "" str of
-    Left e  -> error $ show e
-    Right r -> r
-
-parseOper :: String -> Expression
-parseOper str =
-  case parse operation "" str of
-    Left e  -> error $ show e
-    Right r -> r
-
-parseUnitsNum :: String -> Expression
-parseUnitsNum str =
-  case parse unitsNum "" str of
+  case parse exprParser "" str of
     Left e  -> error $ show e
     Right r -> r
