@@ -1,8 +1,5 @@
-{-
-import Text.ParserCombinators.Parsec
-import qualified Text.ParserCombinators.Parsec.Token as T
-import qualified Text.ParserCombinators.Parsec.Language as L
--}
+module DimensionalCalculator.Language.Parser (parseExpr) where
+import DimensionalCalculator.Language.Types
 
 import Control.Applicative((<*))
 import Text.Parsec
@@ -10,14 +7,6 @@ import Text.Parsec.String
 import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
-
-data Oper = Plus | Minus | Times | Divide
-              deriving (Eq, Ord, Show)
-
-type Unit = String
-data Expression = UnitsNumber Double Unit
-                | Operation Oper Expression Expression
-                deriving (Eq, Ord, Show)
 
 def = emptyDef{ commentStart = "{-"
               , commentEnd = "-}"
@@ -53,7 +42,7 @@ term = m_parens exprParser
 unitsNumber = do
   f <- float lexer
   u <- m_identifier
-  return (UnitsNumber f u)
+  return (UnitsNumber f (ComplexUnit {numer=[u], denom=[]}))
 
 operation :: Parser Expression
 operation = do
@@ -68,7 +57,7 @@ parseOperator = (m_reservedOp "+" >> return Plus)
                 <|> (m_reservedOp "*" >> return Times)
                 <|> (m_reservedOp "/" >> return Divide)
                 
-tokenOf :: String -> Oper
+tokenOf :: String -> BinaryOperator
 tokenOf op = case op of
   "+" -> Plus
   "-" -> Minus
