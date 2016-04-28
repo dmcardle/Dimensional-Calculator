@@ -1,5 +1,6 @@
 module DimensionalCalculator.Language.Parser (parseExpr) where
 import DimensionalCalculator.Language.Types
+import DimensionalCalculator.Units
 
 import Control.Applicative((<*))
 import Text.Parsec
@@ -42,7 +43,7 @@ term = m_parens exprParser
 unitsNumber = do
   f <- float lexer
   u <- m_identifier
-  return (UnitsNumber f (ComplexUnit {numer=[u], denom=[]}))
+  return (UnitsNumber f ([u],[]))
 
 operation :: Parser Expression
 operation = do

@@ -1,6 +1,7 @@
 module Main where
 import DimensionalCalculator.Language.Types
 import DimensionalCalculator.Language.Parser (parseExpr)
+import DimensionalCalculator.Units
 
 type ArithFunc = Double -> Double -> Double
 
@@ -18,9 +19,9 @@ crunchValue (Operation op e1 e2) = (opFunc op) (crunchValue e1) (crunchValue e2)
 crunchUnits :: Expression -> ComplexUnit
 crunchUnits (UnitsNumber _ u) = u
 crunchUnits (Operation op e1 e2)
-    | op == Plus && sameUnits = u1 %+ u2
-    | op == Minus && sameUnits = u1 %- u2
-    | op == Times = u1 %* u2
+    | op == Plus   = u1 %+ u2
+    | op == Minus  = u1 %- u2
+    | op == Times  = u1 %* u2
     | op == Divide = u1 %/ u2
     where
       u1 = crunchUnits e1
