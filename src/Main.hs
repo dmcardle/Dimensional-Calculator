@@ -37,4 +37,4 @@ calculator s = (show value) ++ " " ++ (show units)
              value = crunchValue expr
              units = crunchUnits expr
                 
-main = interact calculator
+main = interact $ unlines . map calculator . lines
